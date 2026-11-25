@@ -883,7 +883,7 @@ void KeymapOverlay::mouseReleaseEvent(QMouseEvent *)
         }
         m_model->setMouseMoveMap(map); // pushes undo, emits modelChanged
         QString error;
-        if (!m_model->validate(&error, size())) {
+        if (!m_model->validate(&error)) {
             revertDrag();
             emit statusMessage(error);
         }
@@ -896,7 +896,7 @@ void KeymapOverlay::mouseReleaseEvent(QMouseEvent *)
     }
     m_undoPushed = false;
     QString error;
-    if (m_model->validate(&error, size())) {
+    if (m_model->validate(&error)) {
         m_model->modelChanged();
     } else {
         revertDrag();

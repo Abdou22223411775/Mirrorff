@@ -71,6 +71,7 @@ KeymapSidebar::KeymapSidebar(QWidget *parent)
     , m_smallEyesYSpin(0)
     , m_showCrosshairCheck(0)
     , m_audioLabel(0)
+    , m_statusLabel(0)
 {
     setFixedWidth(220);
     setObjectName("keymapSidebar");
@@ -88,6 +89,14 @@ KeymapSidebar::KeymapSidebar(QWidget *parent)
     m_scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     m_scrollArea->setFrameShape(QFrame::NoFrame);
     mainLayout->addWidget(m_scrollArea);
+
+    // Status line, always visible below the scroll area (outside it, so
+    // it never scrolls away): drag refusals and other editor messages
+    // land here. They used to go only to the console log, where the
+    // user never saw them.
+    m_statusLabel = new QLabel(QString::fromUtf8("Prêt"), this);
+    m_statusLabel->setWordWrap(true);
+    mainLayout->addWidget(m_statusLabel);
 
     m_content = new QWidget;
     QVBoxLayout *contentLayout = new QVBoxLayout(m_content);
@@ -444,6 +453,13 @@ void KeymapSidebar::setAudioRunning(bool running)
     if (m_audioLabel) {
         m_audioLabel->setText(running ? QString::fromUtf8("Audio : en cours")
                                       : QString::fromUtf8("Audio : arrêté"));
+    }
+}
+
+void KeymapSidebar::showStatusMessage(const QString &msg)
+{
+    if (m_statusLabel) {
+        m_statusLabel->setText(msg);
     }
 }
 

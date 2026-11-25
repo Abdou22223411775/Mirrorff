@@ -76,6 +76,14 @@ static bool positionsOverlap(const QRectF &a, const QPointF &centreA, const QRec
     return qSqrt(dx * dx + dy * dy) < 48.0;
 }
 
+// Fixed canvas the keymap was designed on (2048x921 screenshot).
+// Overlap validation and nudging always use this canvas, never the live
+// video size: a keymap is a relative (0..1) layout, so the same keymap
+// must validate identically on any widget size or aspect ratio.
+// (buttonPixelSize, used only for DRAWING the buttons, still scales
+// with the live video height.)
+static const QSize kDesignCanvas(2048, 921);
+
 // ---------------------------------------------------------------------------
 // KeymapModel
 // ---------------------------------------------------------------------------
@@ -410,9 +418,9 @@ bool KeymapModel::loadFromJson(const QString &json, QString *error)
     m_nodes = nodes;
     int oldSelection = m_selectedIndex;
     m_selectedIndex = -1;
-    // A fresh document: fix overlaps against a 1080p reference, then clear
-    // the undo history (nudgeOverlaps may push one entry first).
-    nudgeOverlaps(QSize(1920, 1080));
+    // A fresh document: fix overlaps against the design canvas, then
+    // clear the undo history (nudgeOverlaps may push one entry first).
+    nudgeOverlaps();
     m_undoStack.clear();
     m_redoStack.clear();
     emit modelChanged();
@@ -647,7 +655,7 @@ QVector<KeymapModel::ButtonGeom> KeymapModel::buttonGeometries(const QVector<Key
     return geoms;
 }
 
-bool KeymapModel::validate(QString *error, const QSize &videoSize) const
+bool KeymapModel::validate(QString *error) const
 {
     if (m_switchKey.isEmpty() || !isValidKeyName(m_switchKey)) {
         if (error) {
@@ -752,7 +760,10 @@ bool KeymapModel::validate(QString *error, const QSize &videoSize) const
     }
 
     // Overlaps: rectangles intersect, or centres closer than 48 px.
-    QVector<ButtonGeom> geoms = buttonGeometries(m_nodes, videoSize);
+    // Geometry is computed on the design canvas (kDesignCanvas), never
+    // on the live video size, so the result does not depend on the
+    // widget size or aspect ratio.
+    QVector<ButtonGeom> geoms = buttonGeometries(m_nodes, kDesignCanvas);
     for (int i = 0; i < geoms.size(); ++i) {
         for (int j = i + 1; j < geoms.size(); ++j) {
             if (positionsOverlap(geoms.at(i).rect, geoms.at(i).centre, geoms.at(j).rect, geoms.at(j).centre)) {
@@ -767,11 +778,11 @@ bool KeymapModel::validate(QString *error, const QSize &videoSize) const
     return true;
 }
 
-void KeymapModel::nudgeOverlaps(const QSize &videoSize)
+void KeymapModel::nudgeOverlaps()
 {
-    if (videoSize.width() <= 0 || videoSize.height() <= 0) {
-        return;
-    }
+    // Grid cells and button rects are computed on the design canvas
+    // (kDesignCanvas), never on the live video size, so loading the
+    // same keymap never scrambles its layout on a portrait video.
     QVector<KeymapNode> newNodes = m_nodes;
     MouseMoveMap newMap = m_mouseMoveMap;
     bool changed = false;
@@ -826,10 +837,10 @@ void KeymapModel::nudgeOverlaps(const QSize &videoSize)
     // Move any overlapping button to the nearest free cell of a 12x8 grid.
     // Buttons are placed in order; a moved button joins the placed set, so
     // later buttons avoid it too.
-    QVector<ButtonGeom> geoms = buttonGeometries(newNodes, videoSize);
+    QVector<ButtonGeom> geoms = buttonGeometries(newNodes, kDesignCanvas);
     QVector<ButtonGeom> placed;
-    double cellW = videoSize.width() / 12.0;
-    double cellH = videoSize.height() / 8.0;
+    double cellW = kDesignCanvas.width() / 12.0;
+    double cellH = kDesignCanvas.height() / 8.0;
     for (int g = 0; g < geoms.size(); ++g) {
         ButtonGeom geom = geoms.at(g);
         bool overlaps = false;
@@ -852,8 +863,8 @@ void KeymapModel::nudgeOverlaps(const QSize &videoSize)
                 QPointF cellCentre((col + 0.5) * cellW, (row + 0.5) * cellH);
                 double halfW = geom.rect.width() / 2.0;
                 double halfH = geom.rect.height() / 2.0;
-                double cx = qBound(halfW, cellCentre.x() + rectOffset.x(), videoSize.width() - halfW);
-                double cy = qBound(halfH, cellCentre.y() + rectOffset.y(), videoSize.height() - halfH);
+                double cx = qBound(halfW, cellCentre.x() + rectOffset.x(), kDesignCanvas.width() - halfW);
+                double cy = qBound(halfH, cellCentre.y() + rectOffset.y(), kDesignCanvas.height() - halfH);
                 QPointF candidate(cx - rectOffset.x(), cy - rectOffset.y());
                 QRectF candidateRect(candidate.x() + rectOffset.x() - halfW,
                                      candidate.y() + rectOffset.y() - halfH, geom.rect.width(),
@@ -882,7 +893,7 @@ void KeymapModel::nudgeOverlaps(const QSize &videoSize)
             placed.append(geom); // no free cell: leave it where it is
             continue;
         }
-        QPointF rel(bestCentre.x() / videoSize.width(), bestCentre.y() / videoSize.height());
+        QPointF rel(bestCentre.x() / kDesignCanvas.width(), bestCentre.y() / kDesignCanvas.height());
         KeymapNode &node = newNodes[geom.nodeIndex];
         if (geom.tapIndex >= 0) {
             node.clickNodes[geom.tapIndex].second = rel;

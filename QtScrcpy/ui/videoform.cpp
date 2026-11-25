@@ -308,8 +308,13 @@ void VideoForm::setupKeymapEditor()
         videoLayout->setSpacing(0);
         videoLayout->addWidget(m_keymapOverlay);
     }
-    connect(m_keymapOverlay, &KeymapOverlay::statusMessage, this, [](const QString &msg) {
+    // Editor messages go to the sidebar status line (always visible)
+    // as well as to the console log.
+    connect(m_keymapOverlay, &KeymapOverlay::statusMessage, this, [this](const QString &msg) {
         qInfo() << "Mirrorff:" << msg;
+        if (m_keymapSidebar) {
+            m_keymapSidebar->showStatusMessage(msg);
+        }
     });
 
     // The sidebar is a child widget of this form, beside the video

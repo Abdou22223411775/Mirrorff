@@ -93,9 +93,19 @@ public:
     QString fileName() const;
     void setFileName(const QString &n);
 
-    bool validate(QString *error, const QSize &videoSize) const;
+    // Overlap validation and nudging are aspect-independent: the keymap
+    // is a relative (0..1) layout, so its geometry is always checked on
+    // the fixed design canvas (2048x921, the screenshot the keymap was
+    // built from), never on the live video size. Validating on a
+    // portrait video failed the shipped keymap: the button size scales
+    // with widget height while the horizontal spacing scales with
+    // width, so fire/jump rects intersected below w/h ~= 0.52 and
+    // every drag release on a portrait video was rejected.
+    // The 48 px minimum centre separation keeps its exact meaning, in
+    // design-canvas pixels.
+    bool validate(QString *error) const;
     bool hasDuplicateKey(QString *dupKey) const;
-    void nudgeOverlaps(const QSize &videoSize);
+    void nudgeOverlaps();
 
     // Rewrites a keymap JSON string, converting any legacy multi-tap
     // array into "clickNodes" (the converter ignores the legacy name).
@@ -133,9 +143,10 @@ signals:
     void selectionChanged(int index);
 
 private:
-    // Geometry of one touchable button, in video pixels. Used by validate()
-    // and nudgeOverlaps(). tapIndex is -1 for a single button (pos, steer
-    // wheel centre, drag startPos) and >= 0 for a multi tap point.
+    // Geometry of one touchable button, in design-canvas pixels. Used
+    // by validate() and nudgeOverlaps(). tapIndex is -1 for a single
+    // button (pos, steer wheel centre, drag startPos) and >= 0 for a
+    // multi tap point.
     struct ButtonGeom
     {
         QRectF rect;

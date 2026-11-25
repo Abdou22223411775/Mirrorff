@@ -33,6 +33,9 @@ public:
     void setSwitchKey(const QString &key);
     void setEditMode(bool on);
     void setAudioRunning(bool running);
+    // Shows an editor message (e.g. why a drag was refused) on the
+    // status line at the bottom of the sidebar, always visible.
+    void showStatusMessage(const QString &msg);
     void refreshAll();
 
 signals:
@@ -121,6 +124,8 @@ private:
     QCheckBox *m_showCrosshairCheck;
     // Audio
     QLabel *m_audioLabel;
+    // Status line (always visible below the scroll area).
+    QLabel *m_statusLabel;
 };
 
 #endif // KEYMAPSIDEBAR_H
