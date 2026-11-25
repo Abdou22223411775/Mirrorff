@@ -62,6 +62,7 @@ private slots:
     void onModelChanged();
     void onSelectionChanged(int index);
     void onFlashTimeout();
+    void onDragRepaintTimeout();
 
 private:
     enum HitPart
@@ -104,6 +105,12 @@ private:
     void beginCapture(int nodeIndex, int direction);
     void endCapture();
     void revertDrag();
+    // Drag repaint throttle (see the .cpp): mouse moves arrive far faster
+    // than the video widget can repaint, so repaints during a drag are
+    // coalesced to ~30 Hz and limited to the dragged button's old+new
+    // area instead of the whole overlay.
+    void requestDragRepaint(const QRectF &dirty);
+    void finishDragRepaint();
 
     KeymapModel *m_model;
     bool m_editMode;
@@ -130,6 +137,16 @@ private:
     bool m_hasPreview;
     QPointF m_previewMouseLookPos;
     QPointF m_previewSmallEyesPos;
+
+    // Drag repaint throttle: a full-overlay update() on every mouse move
+    // forces a full repaint of the parent QOpenGLWidget (paintGL + child
+    // compositing) and starves the decoder's frame uploads, freezing the
+    // video. Repaints during a drag are therefore rate-limited to one
+    // every 33 ms (~30 Hz) and clipped to the union of the dragged
+    // button's old and new rectangles.
+    QTimer m_dragRepaintTimer;
+    bool m_dragRepaintPending;
+    QRectF m_dragDirtyRect;
 };
 
 #endif // KEYMAPOVERLAY_H

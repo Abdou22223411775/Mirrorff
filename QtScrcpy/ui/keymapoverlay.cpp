@@ -36,11 +36,16 @@ KeymapOverlay::KeymapOverlay(QWidget *parent)
     , m_dragDirection(-1)
     , m_undoPushed(false)
     , m_hasPreview(false)
+    , m_dragRepaintPending(false)
 {
     setFocusPolicy(Qt::StrongFocus);
     setVisible(false); // play mode: hidden until edit mode is switched on
     m_flashTimer.setInterval(350);
     connect(&m_flashTimer, &QTimer::timeout, this, &KeymapOverlay::onFlashTimeout);
+    // Drag repaint throttle (see the header): one repaint per 33 ms max.
+    m_dragRepaintTimer.setSingleShot(true);
+    m_dragRepaintTimer.setInterval(33);
+    connect(&m_dragRepaintTimer, &QTimer::timeout, this, &KeymapOverlay::onDragRepaintTimeout);
 }
 
 void KeymapOverlay::setModel(KeymapModel *model)
@@ -64,6 +69,7 @@ void KeymapOverlay::setEditMode(bool on)
     m_editMode = on;
     if (!on) {
         endCapture();
+        finishDragRepaint(); // no drag can survive leaving edit mode
     }
     // In play mode the overlay is hidden so gameplay input flows through
     // untouched; in edit mode it is visible and accepts mouse events.
@@ -104,6 +110,48 @@ void KeymapOverlay::onFlashTimeout()
 {
     m_flashOn = !m_flashOn;
     update();
+}
+
+// Drag repaint throttle (bug 1): this overlay is a full-size child of the
+// QOpenGLWidget that shows the phone screen, so every update() forces a
+// full repaint of that widget (paintGL + compositing this overlay on top).
+// Calling update() on every mouse move during a drag floods the GUI thread
+// with GL repaints and starves the decoder's frame uploads
+// (Decoder::onNewFrame -> QYUVOpenGLWidget::updateTextures), so the video
+// freezes. The dragged button's position is still updated on every move
+// (the model stays live); only the repaint is coalesced to ~30 Hz and
+// clipped to the button's old+new area, leaving the GUI thread time to
+// keep the video running.
+void KeymapOverlay::requestDragRepaint(const QRectF &dirty)
+{
+    m_dragDirtyRect = m_dragDirtyRect.isNull() ? dirty : m_dragDirtyRect.united(dirty);
+    if (m_dragRepaintTimer.isActive()) {
+        // A repaint is already scheduled: the new area rides along.
+        m_dragRepaintPending = true;
+        return;
+    }
+    update(m_dragDirtyRect.toRect().adjusted(-4, -4, 4, 4));
+    m_dragDirtyRect = QRectF();
+    m_dragRepaintPending = false;
+    m_dragRepaintTimer.start(33);
+}
+
+void KeymapOverlay::onDragRepaintTimeout()
+{
+    if (!m_dragRepaintPending || m_dragDirtyRect.isNull()) {
+        return;
+    }
+    m_dragRepaintPending = false;
+    update(m_dragDirtyRect.toRect().adjusted(-4, -4, 4, 4));
+    m_dragDirtyRect = QRectF();
+    m_dragRepaintTimer.start(33);
+}
+
+void KeymapOverlay::finishDragRepaint()
+{
+    m_dragRepaintTimer.stop();
+    m_dragRepaintPending = false;
+    m_dragDirtyRect = QRectF();
 }
 
 QPointF KeymapOverlay::relToPx(const QPointF &relPos) const
@@ -699,8 +747,9 @@ void KeymapOverlay::mouseMoveEvent(QMouseEvent *event)
             m_model->pushUndo();
             m_undoPushed = true;
         }
+        QRectF oldRect = nodeRect(node);
         node.pos = target;
-        update();
+        requestDragRepaint(oldRect.united(nodeRect(node)));
         break;
     }
     case DragTapPoint: {
@@ -719,8 +768,9 @@ void KeymapOverlay::mouseMoveEvent(QMouseEvent *event)
             m_model->pushUndo();
             m_undoPushed = true;
         }
+        QRectF oldRect = nodeRect(node);
         node.clickNodes[m_dragTap].second = target;
-        update();
+        requestDragRepaint(oldRect.united(nodeRect(node)));
         break;
     }
     case DragWheelDirection: {
@@ -766,6 +816,7 @@ void KeymapOverlay::mouseMoveEvent(QMouseEvent *event)
             m_model->pushUndo();
             m_undoPushed = true;
         }
+        QRectF oldRect = nodeRect(node);
         switch (m_dragDirection) {
         case 0:
             node.leftOffset = offset;
@@ -780,7 +831,7 @@ void KeymapOverlay::mouseMoveEvent(QMouseEvent *event)
             node.downOffset = offset;
             break;
         }
-        update();
+        requestDragRepaint(oldRect.united(nodeRect(node)));
         break;
     }
     case DragMouseLook: {
@@ -790,7 +841,9 @@ void KeymapOverlay::mouseMoveEvent(QMouseEvent *event)
         }
         m_previewMouseLookPos = target;
         m_hasPreview = true;
-        update();
+        // The crosshair lines span the whole widget, so the dirty area is
+        // the whole widget — the throttle still caps the repaint rate.
+        requestDragRepaint(QRectF(0, 0, width(), height()));
         break;
     }
     case DragSmallEyes: {
@@ -800,7 +853,7 @@ void KeymapOverlay::mouseMoveEvent(QMouseEvent *event)
         }
         m_previewSmallEyesPos = target;
         m_hasPreview = true;
-        update();
+        requestDragRepaint(QRectF(0, 0, width(), height()));
         break;
     }
     default:
@@ -813,6 +866,7 @@ void KeymapOverlay::mouseReleaseEvent(QMouseEvent *)
     if (!m_editMode || !m_model || m_dragKind == DragNone) {
         return;
     }
+    finishDragRepaint(); // stop the drag throttle; the branches below repaint once
     DragKind kind = m_dragKind;
     m_dragKind = DragNone;
     if (kind == DragMouseLook || kind == DragSmallEyes) {

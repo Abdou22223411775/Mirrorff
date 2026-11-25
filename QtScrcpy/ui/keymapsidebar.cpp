@@ -351,6 +351,37 @@ KeymapSidebar::KeymapSidebar(QWidget *parent)
 
     contentLayout->addStretch(1);
     refreshAll();
+    disableKeyboardFocus();
+}
+
+void KeymapSidebar::disableKeyboardFocus()
+{
+    // A focused QPushButton is activated by Space (QAbstractButton: Space
+    // presses the button, release clicks it). The checkable "Éditer (F9)"
+    // mode button keeps the keyboard focus after being clicked, so
+    // pressing Space — the game's jump key — toggled edit mode on/off
+    // instead of jumping in the game, and Space never reached the
+    // VideoForm/device. The same applies to check boxes (Space toggles
+    // them) and combo boxes (Space opens them). These controls are all
+    // used with the mouse, so they get NoFocus. Text and spin editors are
+    // left alone: they need the focus to type values (and they ignore
+    // Space, so it propagates to the game).
+    QList<QPushButton *> buttons = findChildren<QPushButton *>();
+    for (int i = 0; i < buttons.size(); ++i) {
+        buttons.at(i)->setFocusPolicy(Qt::NoFocus);
+    }
+    QList<QCheckBox *> checks = findChildren<QCheckBox *>();
+    for (int i = 0; i < checks.size(); ++i) {
+        checks.at(i)->setFocusPolicy(Qt::NoFocus);
+    }
+    QList<QComboBox *> combos = findChildren<QComboBox *>();
+    for (int i = 0; i < combos.size(); ++i) {
+        combos.at(i)->setFocusPolicy(Qt::NoFocus);
+    }
+    QList<QGroupBox *> groups = findChildren<QGroupBox *>();
+    for (int i = 0; i < groups.size(); ++i) {
+        groups.at(i)->setFocusPolicy(Qt::NoFocus);
+    }
 }
 
 QGroupBox *KeymapSidebar::makeSection(const QString &title, QWidget *content)
@@ -533,6 +564,7 @@ void KeymapSidebar::rebuildProperties()
     QLineEdit *keyEdit = new QLineEdit;
     keyEdit->setReadOnly(true);
     QPushButton *captureButton = new QPushButton(QString::fromUtf8("⌨"));
+    captureButton->setFocusPolicy(Qt::NoFocus); // mouse-only: see disableKeyboardFocus()
     captureButton->setToolTip(QString::fromUtf8("cliquer puis appuyer sur une touche"));
     QHBoxLayout *keyRow = new QHBoxLayout;
     keyRow->addWidget(keyEdit);
@@ -562,6 +594,7 @@ void KeymapSidebar::rebuildProperties()
         // them in a list. Picking one assigns it with the same
         // duplicate-key check as a key capture.
         QComboBox *modifierCombo = new QComboBox;
+        modifierCombo->setFocusPolicy(Qt::NoFocus); // mouse-only: see disableKeyboardFocus()
         modifierCombo->setToolTip(QString::fromUtf8("choisir une touche de modification (Maj, Ctrl, Alt, Verr Maj, Méta)"));
         modifierCombo->addItem(QString::fromUtf8("Modif."), QString());
         QVector<QPair<QString, QString> > modifiers = KeymapModel::modifierKeys();
@@ -674,6 +707,7 @@ void KeymapSidebar::rebuildProperties()
 
     // switchMap (only meaningful for KMT_CLICK).
     QCheckBox *switchMapCheck = new QCheckBox("switchMap");
+    switchMapCheck->setFocusPolicy(Qt::NoFocus); // mouse-only: see disableKeyboardFocus()
     switchMapCheck->setChecked(node.switchMap);
     switchMapCheck->setEnabled(node.type == "KMT_CLICK");
     m_propertiesLayout->addWidget(switchMapCheck);
@@ -690,6 +724,9 @@ void KeymapSidebar::rebuildProperties()
     QLineEdit *commentEdit = new QLineEdit(node.comment);
     form->addRow(QString::fromUtf8("Commentaire"), commentEdit);
     connect(commentEdit, &QLineEdit::editingFinished, this, [this, index, commentEdit]() {
+        // Give the keyboard back to the game once the comment is typed:
+        // a focused line edit would swallow Space instead of jumping.
+        commentEdit->clearFocus();
         if (!m_model || index < 0 || index >= m_model->nodes().size()) {
             return;
         }

@@ -67,6 +67,11 @@ private slots:
 private:
     QGroupBox *makeSection(const QString &title, QWidget *content);
     void rebuildProperties();
+    // Buttons, check boxes and combo boxes here are mouse-only controls:
+    // they must never take keyboard focus, otherwise a focused button is
+    // activated by Space (QAbstractButton) and the game's jump key never
+    // reaches the device.
+    void disableKeyboardFocus();
     void startNodeKeyCapture(int index);
     void cancelKeyCaptures();
     bool keyInUse(const QString &key, int excludeNode) const;

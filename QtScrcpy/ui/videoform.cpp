@@ -120,6 +120,10 @@ void VideoForm::initUI()
         // OpenGL 路径（原有逻辑）
         m_videoWidget = new QYUVOpenGLWidget();
         m_videoWidget->hide();
+        // Mirrorff: the video widget must be able to take keyboard focus
+        // so game keys (Space = jump) reach the form/device after leaving
+        // edit mode, instead of landing on a sidebar control.
+        m_videoWidget->setFocusPolicy(Qt::StrongFocus);
         ui->keepRatioWidget->setWidget(m_videoWidget);
 
         // FPS label 作为 OpenGL widget 的子控件
@@ -399,6 +403,16 @@ void VideoForm::setEditMode(bool on)
         // Release any active mouse-look drag: while editing, the mouse is
         // the editor cursor, not the game camera.
         grabCursor(false);
+    } else {
+        // Back to play mode: the game owns the keyboard again. The overlay
+        // is hidden, so focus must leave it — put it on the video widget.
+        // Otherwise Qt hands focus to the next widget in the chain, which
+        // can be a sidebar control that eats game keys (a focused button
+        // is activated by Space, so Space toggled edit mode on/off
+        // instead of jumping). F9 still toggles edit mode (QShortcut).
+        if (QWidget *vw = videoWidget()) {
+            vw->setFocus();
+        }
     }
     if (m_keymapOverlay) {
         m_keymapOverlay->setEditMode(on);
