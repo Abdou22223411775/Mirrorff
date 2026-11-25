@@ -3,6 +3,7 @@
 
 #include <QApplication>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QFormLayout>
 #include <QGroupBox>
@@ -556,6 +557,56 @@ void KeymapSidebar::rebuildProperties()
         m_nodeKeyCaptureButton = captureButton;
         connect(captureButton, &QPushButton::clicked, this,
                 [this, index]() { startNodeKeyCapture(index); });
+        // Modifier dropdown next to the key field: modifier-only keys
+        // (Shift, Ctrl, ...) cannot be typed as a plain key, so offer
+        // them in a list. Picking one assigns it with the same
+        // duplicate-key check as a key capture.
+        QComboBox *modifierCombo = new QComboBox;
+        modifierCombo->setToolTip(QString::fromUtf8("choisir une touche de modification (Maj, Ctrl, Alt, Verr Maj, Méta)"));
+        modifierCombo->addItem(QString::fromUtf8("Modif."), QString());
+        QVector<QPair<QString, QString> > modifiers = KeymapModel::modifierKeys();
+        for (int m = 0; m < modifiers.size(); ++m) {
+            modifierCombo->addItem(modifiers.at(m).second, modifiers.at(m).first);
+        }
+        int currentModifier = 0;
+        for (int m = 0; m < modifiers.size(); ++m) {
+            if (modifiers.at(m).first == node.key) {
+                currentModifier = m + 1;
+                break;
+            }
+        }
+        modifierCombo->setCurrentIndex(currentModifier);
+        keyRow->addWidget(modifierCombo);
+        connect(modifierCombo, static_cast<void (QComboBox::*)(int)>(&QComboBox::activated), this,
+                [this, index, modifierCombo](int comboIndex) {
+                    if (!m_model || index < 0 || index >= m_model->nodes().size()) {
+                        return;
+                    }
+                    QString name = modifierCombo->itemData(comboIndex).toString();
+                    if (name.isEmpty()) {
+                        return; // placeholder entry
+                    }
+                    if (name == m_model->nodes().at(index).key) {
+                        return; // already assigned
+                    }
+                    if (keyInUse(name, index)) {
+                        // Duplicate: snap the list back to the current key.
+                        QSignalBlocker blocker(modifierCombo);
+                        int current = 0;
+                        QVector<QPair<QString, QString> > modifiers = KeymapModel::modifierKeys();
+                        for (int m = 0; m < modifiers.size(); ++m) {
+                            if (modifiers.at(m).first == m_model->nodes().at(index).key) {
+                                current = m + 1;
+                                break;
+                            }
+                        }
+                        modifierCombo->setCurrentIndex(current);
+                        return;
+                    }
+                    m_model->pushUndo();
+                    m_model->nodes()[index].key = name;
+                    m_model->modelChanged();
+                });
     }
 
     // X / Y (first tap point for a multi node; none for android-key nodes).
@@ -751,7 +802,7 @@ void KeymapSidebar::keyPressEvent(QKeyEvent *event)
         }
         QString name = KeymapModel::keyNameFromKeyEvent(event);
         if (name.isEmpty()) {
-            return; // modifier alone: stay in capture
+            return; // unknown key: stay in capture
         }
         if (keyInUse(name, -1)) {
             cancelKeyCaptures(); // duplicate: keep the old switchKey

@@ -473,7 +473,7 @@ bool KeymapOverlay::handleKeyPress(QKeyEvent *event)
         }
         QString name = KeymapModel::keyNameFromKeyEvent(event);
         if (name.isEmpty()) {
-            return true; // modifier alone: stay in capture, ignore the key
+            return true; // unknown key: stay in capture, ignore the key
         }
         if (keyInUse(name, m_captureIndex, m_captureDirection)) {
             endCapture();

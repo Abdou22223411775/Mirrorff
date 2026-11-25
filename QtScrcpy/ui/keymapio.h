@@ -101,10 +101,17 @@ public:
     // array into "clickNodes" (the converter ignores the legacy name).
     // Returns the input unchanged when it cannot be parsed.
     static QString convertDelayClickNodes(const QString &json);
-    // Qt::Key enum name of the pressed key ("Key_F1", ...). Returns an empty
-    // string for unknown keys and for modifier-only keys (Shift, Ctrl, Alt,
-    // Meta, CapsLock, ... pressed on their own).
+    // Qt::Key enum name of the pressed key ("Key_F1", "Key_Shift", ...).
+    // Modifier-only keys that are valid gameplay keys (Shift, Control,
+    // Alt, CapsLock, Meta) return their names, so pressing one alone
+    // during rebind assigns it. Returns an empty string for unknown keys
+    // and for modifier-only keys that cannot be gameplay keys (AltGr,
+    // NumLock, ScrollLock, Super, Hyper).
     static QString keyNameFromKeyEvent(QKeyEvent *event);
+    // Assignable modifier-only keys: (Qt::Key enum name, display name).
+    // Shift, Control, Alt, CapsLock, Meta — the keys a player may want
+    // on a button (e.g. sprint = Shift) but cannot type as a plain key.
+    static QVector<QPair<QString, QString> > modifierKeys();
     // Short label for a key name: "Key_F1" -> "F1", "Key_Ampersand" -> "&",
     // "LeftButton" -> "LMB", ...
     static QString keyDisplayName(const QString &keyName);

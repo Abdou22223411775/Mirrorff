@@ -955,14 +955,14 @@ QString KeymapModel::keyNameFromKeyEvent(QKeyEvent *event)
     if (key == 0 || key == Qt::Key_unknown) {
         return QString();
     }
-    // Modifier-only keys: no rebind target on their own.
+    // Modifier-only keys that cannot be gameplay keys: AltGr is a dead
+    // key on AZERTY, Num/Scroll Lock are toggles, Super/Hyper belong to
+    // the OS. The five assignable modifiers (Shift, Control, Alt,
+    // CapsLock, Meta) fall through and are returned as their Qt::Key
+    // names, so pressing one alone during rebind assigns it (sprint
+    // is Shift, two spare buttons are CapsLock and Control).
     switch (key) {
-    case Qt::Key_Shift:
-    case Qt::Key_Control:
-    case Qt::Key_Alt:
-    case Qt::Key_Meta:
     case Qt::Key_AltGr:
-    case Qt::Key_CapsLock:
     case Qt::Key_NumLock:
     case Qt::Key_ScrollLock:
     case Qt::Key_Super_L:
@@ -978,6 +978,17 @@ QString KeymapModel::keyNameFromKeyEvent(QKeyEvent *event)
         return QString();
     }
     return QString::fromLatin1(name);
+}
+
+QVector<QPair<QString, QString> > KeymapModel::modifierKeys()
+{
+    QVector<QPair<QString, QString> > keys;
+    keys.append(qMakePair(QStringLiteral("Key_Shift"), keyDisplayName(QStringLiteral("Key_Shift"))));
+    keys.append(qMakePair(QStringLiteral("Key_Control"), keyDisplayName(QStringLiteral("Key_Control"))));
+    keys.append(qMakePair(QStringLiteral("Key_Alt"), keyDisplayName(QStringLiteral("Key_Alt"))));
+    keys.append(qMakePair(QStringLiteral("Key_CapsLock"), keyDisplayName(QStringLiteral("Key_CapsLock"))));
+    keys.append(qMakePair(QStringLiteral("Key_Meta"), keyDisplayName(QStringLiteral("Key_Meta"))));
+    return keys;
 }
 
 QString KeymapModel::keyDisplayName(const QString &keyName)
