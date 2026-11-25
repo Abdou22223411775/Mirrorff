@@ -52,7 +52,7 @@ jobs:
           target: desktop
           # Architecture for Windows/Android
           arch: ${{ matrix.qt-arch }}
-          cached: ${{ steps.cache-qt.outputs.cache-hit }}
+          cache: ${{ steps.cache-qt.outputs.cache-hit }}
       # Checkout code (submodule over HTTPS, no SSH key needed)
       - uses: actions/checkout@v4
         with:

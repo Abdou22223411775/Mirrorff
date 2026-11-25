@@ -10,12 +10,23 @@ cmake_minimum_required(VERSION 3.19 FATAL_ERROR)
 
 # QC Custom config
 set(QC_PROJECT_NAME "Mirrorff")
-# Read version numbers from file
+# Read version string from file (e.g. "4.2.1-mf1", written by
+# ci/generate-version.py from the git tag). CMake's project() VERSION must
+# be numeric, so only the MAJOR.MINOR.PATCH part is used for the project
+# version; the full string is kept as the display version.
 file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/appversion QC_FILE_VERSION)
-set(QC_PROJECT_VERSION ${QC_FILE_VERSION})
+set(QC_PROJECT_DISPLAY_VERSION ${QC_FILE_VERSION})
+string(REGEX REPLACE "-.*$" "" QC_PROJECT_VERSION ${QC_FILE_VERSION})
+if(NOT QC_PROJECT_VERSION)
+    set(QC_PROJECT_VERSION "0.0.0")
+endif()
 
 # Project declare
 project(${QC_PROJECT_NAME} VERSION ${QC_PROJECT_VERSION} LANGUAGES CXX)
+# Expose the full version string (e.g. "4.2.1-mf1") to the code so the
+# program can report it; the numeric project version is used for the
+# Windows .rc and macOS bundle version, which must be numeric.
+add_compile_definitions(MIRRORFF_DISPLAY_VERSION="${QC_PROJECT_DISPLAY_VERSION}")
 message(STATUS "[${PROJECT_NAME}] Project ${PROJECT_NAME} ${PROJECT_VERSION}")
 
 # QC define

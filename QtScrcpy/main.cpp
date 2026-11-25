@@ -143,6 +143,13 @@ int main(int argc, char *argv[])
         a.setApplicationVersion(version);
     }
 
+#ifdef MIRRORFF_DISPLAY_VERSION
+    // Full version string from the git tag (e.g. "4.2.1-mf1"). The CMake
+    // project version is numeric-only (the Windows .rc and macOS bundle
+    // version require it), so report the tagged version here instead.
+    a.setApplicationVersion(QStringLiteral(MIRRORFF_DISPLAY_VERSION));
+#endif
+
     installTranslator();
 #if defined(Q_OS_WIN32) || defined(Q_OS_MACOS)
     MouseTap::getInstance()->initMouseEventTap();
