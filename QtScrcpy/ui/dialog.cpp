@@ -104,6 +104,13 @@ Dialog::Dialog(QWidget *parent) : QWidget(parent), ui(new Ui::Widget)
 {
     ui->setupUi(this);
     initializeKeyMapDirectory();
+    // Mirrorff: preload the keymap list and select freefire.json by default,
+    // so the game starts with his Free Fire keymap without a manual refresh.
+    on_refreshGameScriptBtn_clicked();
+    int freefireIndex = ui->gameBox->findText(QStringLiteral("freefire.json"));
+    if (freefireIndex >= 0) {
+        ui->gameBox->setCurrentIndex(freefireIndex);
+    }
     initUI();
 
     updateBootConfig(true);
@@ -466,7 +473,7 @@ void Dialog::initAdvancedConfigUi(QWidget *parent)
     m_configOpenGlBox->addItem(tr("Software OpenGL"), 0);
     m_configOpenGlBox->addItem(tr("OpenGL ES"), 1);
     m_configOpenGlBox->addItem(tr("Desktop OpenGL"), 2);
-    m_configOpenGlBox->setToolTip(tr("Takes effect after restarting QtScrcpy."));
+    m_configOpenGlBox->setToolTip(tr("Takes effect after restarting Mirrorff."));
     layout->addRow(tr("OpenGL backend"), m_configOpenGlBox);
 
     m_configServerPathEdit = new QLineEdit(group);
@@ -560,7 +567,7 @@ void Dialog::saveAdvancedConfig()
     }
     m_configPushPathEdit->setText(pushPath);
     QMessageBox::information(this, tr("Configuration saved"),
-                             tr("The settings were saved to config.ini. Restart QtScrcpy for all changes to take effect."));
+                             tr("The settings were saved to config.ini. Restart Mirrorff for all changes to take effect."));
 }
 
 void Dialog::openUserDirectory(const QString &path)
@@ -1262,6 +1269,14 @@ void Dialog::onDeviceConnected(bool success, const QString &serial, const QStrin
     auto videoForm = new VideoForm(ui->framelessCheck->isChecked(), Config::getInstance().getSkin(), ui->showToolbar->isChecked(), ui->decodeModeBox->currentIndex());
     videoForm->setSerial(serial);
 
+    // Mirrorff: load the selected keymap into the video window's built-in
+    // editor (freefire.json by default) and wire its Save / audio buttons.
+    videoForm->setGameScript(getGameScript(ui->gameBox->currentText()), ui->gameBox->currentText());
+    connect(videoForm, &VideoForm::saveKeymapRequested, this, &Dialog::onVideoFormSaveKeymap);
+    connect(videoForm, &VideoForm::installSndcpyRequested, this, &Dialog::on_installSndcpyBtn_clicked);
+    connect(videoForm, &VideoForm::startAudioRequested, this, &Dialog::on_startAudioBtn_clicked);
+    connect(videoForm, &VideoForm::stopAudioRequested, this, &Dialog::on_stopAudioBtn_clicked);
+
     qsc::IDeviceManage::getInstance().getDevice(serial)->setUserData(static_cast<void*>(videoForm));
     qsc::IDeviceManage::getInstance().getDevice(serial)->registerDeviceObserver(videoForm);
 
@@ -1395,6 +1410,39 @@ void Dialog::on_applyScriptBtn_clicked()
     }
 
     device->updateScript(getGameScript(ui->gameBox->currentText()));
+
+    // Mirrorff: keep the video window's built-in editor on the same script.
+    auto data = device->getUserData();
+    if (data) {
+        static_cast<VideoForm*>(data)->setGameScript(getGameScript(ui->gameBox->currentText()), ui->gameBox->currentText());
+    }
+}
+
+// Mirrorff: the video window's "Save & Link" — write the keymap into the
+// user keymap folder and apply it live on the owning device (no reconnect).
+void Dialog::onVideoFormSaveKeymap(const QString &json, const QString &fileName)
+{
+    if (fileName.isEmpty()) {
+        return;
+    }
+    QDir().mkpath(getKeyMapPath());
+    QFile file(getKeyMapPath() + "/" + fileName);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        outLog("Mirrorff: save keymap failed: " + fileName, true);
+        return;
+    }
+    file.write(json.toUtf8());
+    file.close();
+
+    VideoForm *vf = qobject_cast<VideoForm*>(sender());
+    if (!vf) {
+        return;
+    }
+    auto device = qsc::IDeviceManage::getInstance().getDevice(vf->getSerial());
+    if (device) {
+        device->updateScript(json);
+        outLog("Mirrorff: keymap saved & applied: " + fileName, false);
+    }
 }
 
 void Dialog::on_recordScreenCheck_clicked(bool checked)

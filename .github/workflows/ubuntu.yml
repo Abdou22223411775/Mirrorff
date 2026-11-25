@@ -25,7 +25,7 @@ jobs:
         qt-arch-install: [gcc_64]
         gcc-arch: [x64]
     env:
-      target-name: QtScrcpy
+      target-name: Mirrorff
       qt-install-path: ${{ github.workspace }}/Qt/${{ matrix.qt-ver }}
       plantform-des: ubuntu
       DEBIAN_FRONTEND: noninteractive

@@ -1,5 +1,9 @@
 // #include <QDesktopWidget>
 #include <QCoreApplication>
+#include <QDesktopServices>
+#include <QDir>
+#include <QFile>
+#include <QFileDialog>
 #include <QFileInfo>
 #include <QLabel>
 #include <QMessageBox>
@@ -8,11 +12,14 @@
 #include <QPainter>
 #include <QScreen>
 #include <QShortcut>
+#include <QStandardPaths>
 #include <QStyle>
 #include <QStyleOption>
 #include <QTimer>
+#include <QUrl>
 #include <QWindow>
 #include <QtWidgets/QHBoxLayout>
+#include <QtWidgets/QVBoxLayout>
 
 #if defined(Q_OS_WIN32)
 #include <Windows.h>
@@ -20,6 +27,9 @@
 
 #include "config.h"
 #include "iconhelper.h"
+#include "keymapio.h"
+#include "keymapoverlay.h"
+#include "keymapsidebar.h"
 #include "qyuvopenglwidget.h"
 #include "toolform.h"
 #include "mousetap/mousetap.h"
@@ -43,6 +53,7 @@ VideoForm::VideoForm(bool framelessWindow, bool skin, bool showToolbar, int deco
     });
     initUI();
     installShortcut();
+    setupKeymapEditor();
     updateShowSize(size());
     bool vertical = size().height() > size().width();
     this->show_toolbar = showToolbar;
@@ -187,7 +198,9 @@ void VideoForm::resizeSquare()
 
 void VideoForm::removeBlackRect()
 {
-    resize(ui->keepRatioWidget->goodSize());
+    QSize good = ui->keepRatioWidget->goodSize();
+    good.setWidth(good.width() + sidebarWidth());
+    resize(good);
 }
 
 void VideoForm::showFPS(bool show)
@@ -245,6 +258,207 @@ void VideoForm::showToolForm(bool show)
     m_toolForm->setVisible(show);
 }
 
+// ---------------------------------------------------------------------------
+// Mirrorff keymap editor (built-in, in-window)
+// ---------------------------------------------------------------------------
+
+static QString mirrorffKeyMapPath()
+{
+    // Same rule as Dialog::getKeyMapPath() (dialog.cpp): the user keymap
+    // folder, i.e. the AppData folder of this application (Mirrorff).
+    QString path = QString::fromLocal8Bit(qgetenv("QTSCRCPY_KEYMAP_PATH"));
+    if (path.isEmpty()) {
+        path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/keymap";
+    }
+    return path;
+}
+
+int VideoForm::sidebarWidth() const
+{
+    if (!m_keymapSidebar || isFullScreen()) {
+        return 0;
+    }
+    return m_keymapSidebar->width();
+}
+
+void VideoForm::setupKeymapEditor()
+{
+    m_keymapModel = new KeymapModel(this);
+    connect(m_keymapModel, &KeymapModel::modelChanged, this, [this]() {
+        m_keymapDirty = true;
+        if (m_keymapSidebar) {
+            m_keymapSidebar->refreshAll();
+        }
+    });
+
+    // The overlay is a CHILD of the video widget (same pattern as the FPS
+    // label): it can never slide away from the video, by construction.
+    QWidget *vw = videoWidget();
+    m_keymapOverlay = new KeymapOverlay(vw);
+    m_keymapOverlay->setModel(m_keymapModel);
+    m_keymapOverlay->setVisible(false);
+    if (vw) {
+        // Keep the overlay filling the video widget on every resize.
+        QVBoxLayout *videoLayout = new QVBoxLayout(vw);
+        videoLayout->setContentsMargins(0, 0, 0, 0);
+        videoLayout->setSpacing(0);
+        videoLayout->addWidget(m_keymapOverlay);
+    }
+    connect(m_keymapOverlay, &KeymapOverlay::statusMessage, this, [](const QString &msg) {
+        qInfo() << "Mirrorff:" << msg;
+    });
+
+    // The sidebar is a child widget of this form, beside the video
+    // (NOT a separate top-level window — that pattern slid away and
+    // disappeared in the old Python overlay).
+    m_keymapSidebar = new KeymapSidebar(this);
+    m_keymapSidebar->setOverlay(m_keymapOverlay);
+    m_keymapSidebar->setModel(m_keymapModel);
+    m_keymapSidebar->setFileName(QStringLiteral("freefire.json"));
+
+    QVBoxLayout *outer = qobject_cast<QVBoxLayout *>(layout());
+    if (outer) {
+        outer->removeWidget(ui->keepRatioWidget);
+        QHBoxLayout *row = new QHBoxLayout();
+        row->setContentsMargins(0, 0, 0, 0);
+        row->setSpacing(0);
+        row->addWidget(ui->keepRatioWidget, 1);
+        row->addWidget(m_keymapSidebar);
+        outer->addLayout(row);
+    }
+
+    connect(m_keymapSidebar, &KeymapSidebar::editModeToggled, this, &VideoForm::setEditMode);
+    connect(m_keymapSidebar, &KeymapSidebar::saveRequested, this, [this]() {
+        if (m_keymapModel) {
+            emit saveKeymapRequested(m_keymapModel->toJson(), m_keymapFileName);
+            m_keymapDirty = false;
+        }
+    });
+    connect(m_keymapSidebar, &KeymapSidebar::importRequested, this, &VideoForm::onImportKeymap);
+    connect(m_keymapSidebar, &KeymapSidebar::exportCopyRequested, this, &VideoForm::onExportKeymapCopy);
+    connect(m_keymapSidebar, &KeymapSidebar::openKeymapFolderRequested, this, &VideoForm::onOpenKeymapFolder);
+    connect(m_keymapSidebar, &KeymapSidebar::installSndcpyRequested, this, &VideoForm::installSndcpyRequested);
+    connect(m_keymapSidebar, &KeymapSidebar::startAudioRequested, this, &VideoForm::startAudioRequested);
+    connect(m_keymapSidebar, &KeymapSidebar::stopAudioRequested, this, &VideoForm::stopAudioRequested);
+    connect(m_keymapSidebar, &KeymapSidebar::addClickRequested, this, [this]() {
+        if (m_keymapOverlay) { m_keymapOverlay->addClickAt(QPointF(0.5, 0.5)); }
+    });
+    connect(m_keymapSidebar, &KeymapSidebar::addMultiRequested, this, [this]() {
+        if (m_keymapOverlay) { m_keymapOverlay->addMultiAt(QPointF(0.5, 0.5)); }
+    });
+    connect(m_keymapSidebar, &KeymapSidebar::addWheelRequested, this, [this]() {
+        if (m_keymapOverlay) { m_keymapOverlay->addWheelAt(QPointF(0.5, 0.5)); }
+    });
+    connect(m_keymapSidebar, &KeymapSidebar::deleteRequested, this, [this]() {
+        if (m_keymapOverlay) { m_keymapOverlay->deleteSelected(); }
+    });
+    connect(m_keymapSidebar, &KeymapSidebar::duplicateRequested, this, [this]() {
+        if (m_keymapOverlay) { m_keymapOverlay->duplicateSelected(); }
+    });
+    connect(m_keymapSidebar, &KeymapSidebar::undoRequested, this, [this]() {
+        if (m_keymapOverlay) { m_keymapOverlay->undo(); }
+    });
+    connect(m_keymapSidebar, &KeymapSidebar::redoRequested, this, [this]() {
+        if (m_keymapOverlay) { m_keymapOverlay->redo(); }
+    });
+    connect(m_keymapSidebar, &KeymapSidebar::fullscreenRequested, this, &VideoForm::switchFullScreen);
+    connect(m_keymapSidebar, &KeymapSidebar::rotateRequested, this, [this]() {
+        auto device = qsc::IDeviceManage::getInstance().getDevice(m_serial);
+        if (device) { device->rotateDevice(); }
+    });
+    connect(m_keymapSidebar, &KeymapSidebar::screenshotRequested, this, [this]() {
+        auto device = qsc::IDeviceManage::getInstance().getDevice(m_serial);
+        if (device) { device->screenshot(); }
+    });
+}
+
+void VideoForm::setGameScript(const QString &json, const QString &fileName)
+{
+    m_keymapFileName = fileName.isEmpty() ? QStringLiteral("freefire.json") : fileName;
+    m_keymapDirty = false;
+    if (m_keymapModel && !json.isEmpty()) {
+        QString error;
+        if (!m_keymapModel->loadFromJson(KeymapModel::convertDelayClickNodes(json), &error)) {
+            qWarning() << "Mirrorff: failed to load keymap" << m_keymapFileName << error;
+        }
+        m_keymapModel->setFileName(m_keymapFileName);
+    }
+    if (m_keymapSidebar) {
+        m_keymapSidebar->setFileName(m_keymapFileName);
+        m_keymapSidebar->refreshAll();
+    }
+}
+
+void VideoForm::setEditMode(bool on)
+{
+    if (m_editMode == on) {
+        return;
+    }
+    m_editMode = on;
+    if (on) {
+        // Release any active mouse-look drag: while editing, the mouse is
+        // the editor cursor, not the game camera.
+        grabCursor(false);
+    }
+    if (m_keymapOverlay) {
+        m_keymapOverlay->setEditMode(on);
+    }
+    if (m_keymapSidebar) {
+        m_keymapSidebar->setEditMode(on);
+    }
+}
+
+void VideoForm::onImportKeymap()
+{
+    QString path = QFileDialog::getOpenFileName(this, tr("Importer un keymap"), mirrorffKeyMapPath(), tr("Keymap JSON (*.json)"));
+    if (path.isEmpty() || !m_keymapModel) {
+        return;
+    }
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, "Mirrorff", tr("Cannot open file"), QMessageBox::Ok);
+        return;
+    }
+    QString json = QString::fromUtf8(file.readAll());
+    file.close();
+    QString error;
+    if (!m_keymapModel->loadFromJson(KeymapModel::convertDelayClickNodes(json), &error)) {
+        QMessageBox::warning(this, "Mirrorff", tr("Invalid keymap: %1").arg(error), QMessageBox::Ok);
+        return;
+    }
+    m_keymapFileName = QFileInfo(path).fileName();
+    m_keymapModel->setFileName(m_keymapFileName);
+    m_keymapDirty = true;
+    if (m_keymapSidebar) {
+        m_keymapSidebar->setFileName(m_keymapFileName);
+        m_keymapSidebar->refreshAll();
+    }
+}
+
+void VideoForm::onExportKeymapCopy()
+{
+    if (!m_keymapModel) {
+        return;
+    }
+    QString path = QFileDialog::getSaveFileName(this, tr("Exporter une copie"), mirrorffKeyMapPath() + "/" + m_keymapFileName, tr("Keymap JSON (*.json)"));
+    if (path.isEmpty()) {
+        return;
+    }
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, "Mirrorff", tr("Cannot write file"), QMessageBox::Ok);
+        return;
+    }
+    file.write(m_keymapModel->toJson().toUtf8());
+    file.close();
+}
+
+void VideoForm::onOpenKeymapFolder()
+{
+    QDir().mkpath(mirrorffKeyMapPath());
+    QDesktopServices::openUrl(QUrl::fromLocalFile(mirrorffKeyMapPath()));
+}
+
 void VideoForm::moveCenter()
 {
     QRect screenRect = getScreenRect();
@@ -259,6 +473,12 @@ void VideoForm::moveCenter()
 void VideoForm::installShortcut()
 {
     QShortcut *shortcut = nullptr;
+
+    // Mirrorff: F9 toggles the built-in keymap editor (edit / play mode).
+    // F9 is free in QtScrcpy (no existing F9 binding).
+    shortcut = new QShortcut(QKeySequence("F9"), this);
+    shortcut->setAutoRepeat(false);
+    connect(shortcut, &QShortcut::activated, this, [this]() { setEditMode(!m_editMode); });
 
     // switchFullScreen
     shortcut = new QShortcut(QKeySequence("Ctrl+f"), this);
@@ -537,6 +757,9 @@ void VideoForm::updateShowSize(const QSize &newSize)
             showSize.setHeight(showSize.height() + m.top() + m.bottom());
         }
 
+        // Mirrorff: the sidebar lives inside this window, beside the video.
+        showSize.setWidth(showSize.width() + sidebarWidth());
+
         if (showSize != size()) {
             resize(showSize);
             if (m_skin) {
@@ -583,6 +806,10 @@ void VideoForm::switchFullScreen()
             updateStyleSheet(m_frameSize.height() > m_frameSize.width());
         }
         showToolForm(this->show_toolbar);
+        // Mirrorff: the sidebar comes back with the window.
+        if (m_keymapSidebar) {
+            m_keymapSidebar->show();
+        }
 #ifdef Q_OS_WIN32
         ::SetThreadExecutionState(ES_CONTINUOUS);
 #endif
@@ -602,6 +829,10 @@ void VideoForm::switchFullScreen()
         //setWindowFlags(windowFlags() & ~Qt::FramelessWindowHint);
 #endif
         showToolForm(false);
+        // Mirrorff: the sidebar hides in fullscreen (the video fills the screen).
+        if (m_keymapSidebar) {
+            m_keymapSidebar->hide();
+        }
         if (m_skin) {
             layout()->setContentsMargins(0, 0, 0, 0);
         }
@@ -858,6 +1089,17 @@ void VideoForm::wheelEvent(QWheelEvent *event)
 
 void VideoForm::keyPressEvent(QKeyEvent *event)
 {
+    // Mirrorff: in edit mode no key ever reaches the device. The overlay
+    // consumes rebind captures (and Escape); F9 is handled by the shortcut.
+    if (m_editMode) {
+        if (m_keymapOverlay && m_keymapOverlay->handleKeyPress(event)) {
+            return;
+        }
+        if (event->key() == Qt::Key_Escape) {
+            setEditMode(false);
+        }
+        return;
+    }
     auto device = qsc::IDeviceManage::getInstance().getDevice(m_serial);
     if (!device) {
         return;
@@ -873,6 +1115,10 @@ void VideoForm::keyPressEvent(QKeyEvent *event)
 
 void VideoForm::keyReleaseEvent(QKeyEvent *event)
 {
+    // Mirrorff: in edit mode no key ever reaches the device.
+    if (m_editMode) {
+        return;
+    }
     auto device = qsc::IDeviceManage::getInstance().getDevice(m_serial);
     if (!device) {
         return;
@@ -908,6 +1154,10 @@ void VideoForm::showEvent(QShowEvent *event)
 void VideoForm::resizeEvent(QResizeEvent *event)
 {
     Q_UNUSED(event)
+    // Mirrorff: keep the keymap overlay glued to the video widget.
+    if (m_keymapOverlay && videoWidget()) {
+        m_keymapOverlay->resize(videoWidget()->size());
+    }
     if (m_flexDisplay) {
         m_pendingDisplaySize = ui->keepRatioWidget->size();
         if (!m_pendingDisplaySize.isEmpty()) {
@@ -932,7 +1182,7 @@ void VideoForm::resizeEvent(QResizeEvent *event)
     } else {
         // ver
         if (curSize.width() <= goodSize.width()) {
-            setMinimumWidth(goodSize.width());
+            setMinimumWidth(goodSize.width() + sidebarWidth());
         } else {
             setMinimumWidth(0);
         }
@@ -942,6 +1192,11 @@ void VideoForm::resizeEvent(QResizeEvent *event)
 void VideoForm::closeEvent(QCloseEvent *event)
 {
     Q_UNUSED(event)
+    // Mirrorff: never lose an edit — save unsaved keymap changes first.
+    if (m_keymapDirty && m_keymapModel && !m_keymapFileName.isEmpty()) {
+        emit saveKeymapRequested(m_keymapModel->toJson(), m_keymapFileName);
+        m_keymapDirty = false;
+    }
     auto device = qsc::IDeviceManage::getInstance().getDevice(m_serial);
     if (!device) {
         return;
@@ -979,7 +1234,7 @@ void VideoForm::dropEvent(QDropEvent *event)
         QFileInfo fileInfo(file);
 
         if (!fileInfo.exists()) {
-            QMessageBox::warning(this, "QtScrcpy", tr("file does not exist"), QMessageBox::Ok);
+            QMessageBox::warning(this, "Mirrorff", tr("file does not exist"), QMessageBox::Ok);
             continue;
         }
 

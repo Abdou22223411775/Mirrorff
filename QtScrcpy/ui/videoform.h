@@ -17,6 +17,9 @@ class FileHandler;
 class QYUVOpenGLWidget;
 class QLabel;
 class MetalVideoWidget;
+class KeymapModel;
+class KeymapOverlay;
+class KeymapSidebar;
 class VideoForm : public QWidget, public qsc::DeviceObserver
 {
     Q_OBJECT
@@ -36,6 +39,21 @@ public:
     void switchFullScreen();
     bool isHost();
 
+    // Mirrorff keymap editor (built-in, in-window)
+    void setGameScript(const QString &json, const QString &fileName);
+    void setEditMode(bool on);
+    bool isEditMode() const { return m_editMode; }
+    void markKeymapSaved() { m_keymapDirty = false; }
+
+signals:
+    // Emitted when the user presses "Enregistrer & Lier" in the sidebar
+    // (or when the window closes with unsaved edits). The main Dialog
+    // writes the file and applies it live to the device.
+    void saveKeymapRequested(const QString &json, const QString &fileName);
+    void installSndcpyRequested();
+    void startAudioRequested();
+    void stopAudioRequested();
+
 private:
     void onFrame(int width, int height, uint8_t* dataY, uint8_t* dataU, uint8_t* dataV,
                  int linesizeY, int linesizeU, int linesizeV) override;
@@ -53,6 +71,13 @@ private:
     void moveCenter();
     void installShortcut();
     QRect getScreenRect();
+
+    // Mirrorff keymap editor
+    void setupKeymapEditor();
+    int sidebarWidth() const;
+    void onImportKeymap();
+    void onExportKeymapCopy();
+    void onOpenKeymapFolder();
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
@@ -107,6 +132,14 @@ private:
 
     //Whether to display the toolbar when connecting a device.
     bool show_toolbar = true;
+
+    // Mirrorff keymap editor (built-in, in-window; never a separate window)
+    QPointer<KeymapModel> m_keymapModel;
+    QPointer<KeymapOverlay> m_keymapOverlay;
+    QPointer<KeymapSidebar> m_keymapSidebar;
+    bool m_editMode = false;
+    bool m_keymapDirty = false;
+    QString m_keymapFileName;
 };
 
 #endif // VIDEOFORM_H

@@ -29,8 +29,8 @@ QtMsgType covertLogLevel(const QString &logLevel);
 
 int main(int argc, char *argv[])
 {
-    QCoreApplication::setOrganizationName("QtScrcpy");
-    QCoreApplication::setApplicationName("QtScrcpy");
+    QCoreApplication::setOrganizationName("Mirrorff");
+    QCoreApplication::setApplicationName("Mirrorff");
 
     const QString executableDir = QFileInfo(QString::fromLocal8Bit(argv[0])).absolutePath();
 #ifdef Q_OS_MACOS
@@ -114,9 +114,9 @@ int main(int argc, char *argv[])
     g_oldMessageHandler = qInstallMessageHandler(myMessageOutput);
     QApplication a(argc, argv);
 
-    // Only one QtScrcpy per user. If one is already running (possibly hidden in
+    // Only one Mirrorff per user. If one is already running (possibly hidden in
     // the system tray), ask it to show its window and exit.
-    SingleInstance singleInstance(QStringLiteral("QtScrcpy"));
+    SingleInstance singleInstance(QStringLiteral("Mirrorff"));
     if (!singleInstance.isPrimary()) {
         singleInstance.notifyPrimary();
         return 0;
@@ -178,18 +178,7 @@ int main(int argc, char *argv[])
 
     qInfo() << QObject::tr("This software is completely open source and free. Use it at your own risk. You can download it at the "
             "following address:");
-    qInfo() << QString("QtScrcpy %1 <https://github.com/barry-ran/QtScrcpy>").arg(QCoreApplication::applicationVersion());
-
-    qInfo() << QObject::tr("If you need more professional batch control mirror software, you can try the following software:");
-    qInfo() << QString(QObject::tr("QuickMirror") + " <https://lrbnfell4p.feishu.cn/drive/folder/KviYfz5uFlpUT8dXgdjccmfUnse>");
-
-    qInfo() << QObject::tr("If you need more professional game keymap mirror software, you can try the following software:");
-    qInfo() << QString(QObject::tr("QuickAssistant") + " <https://lrbnfell4p.feishu.cn/drive/folder/Hqckfxj5el1Wjpd9uezcX71lnBh>");
-
-    qInfo() << QObject::tr("If you need more professional PC remote software, you can try the following software:");
-    qInfo() << QString(QObject::tr("QuickDesk") + " <https://github.com/barry-ran/QuickDesk>");
-
-    qInfo() << QObject::tr("You can contact me with telegram <https://t.me/+Ylf_5V_rDCMyODQ1>");
+    qInfo() << QString("Mirrorff %1 <https://github.com/Abdou22223411775/Mirrorff>").arg(QCoreApplication::applicationVersion());
 
     int ret = a.exec();
     delete g_mainDlg;

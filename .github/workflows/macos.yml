@@ -32,7 +32,7 @@ jobs:
             build-arch: arm64
             runs-on: macos-14
     env:
-      target-name: QtScrcpy
+      target-name: Mirrorff
       qt-install-path: ${{ github.workspace }}/${{ matrix.qt-ver }}
       plantform-des: mac
     steps:

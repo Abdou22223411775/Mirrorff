@@ -1,17 +1,18 @@
-# QtScrcpy 
+# Mirrorff 
 
-[![Financial Contributors to Open Collective](https://opencollective.com/QtScrcpy/all/badge.svg?label=financial+contributors)](https://opencollective.com/QtScrcpy)
-![Windows](https://github.com/barry-ran/QtScrcpy/workflows/Windows/badge.svg)
-![MacOS](https://github.com/barry-ran/QtScrcpy/workflows/MacOS/badge.svg)
-![Ubuntu](https://github.com/barry-ran/QtScrcpy/workflows/Ubuntu/badge.svg)
+> **Mirrorff is a fork of [QtScrcpy](https://github.com/barry-ran/QtScrcpy) (Apache-2.0) built for Free Fire on PC.** It mirrors an Android phone to Windows exactly like QtScrcpy, but with a **built-in keymap editor drawn inside the video window** (drag buttons, double-click to rebind a key, no overlapping buttons), a **Free Fire profile preloaded** (`keymap/freefire.json`, 34 buttons, AZERTY), and **game sound on the PC** (sndcpy: Install Sndcpy → Start Audio). No Python needed — one real Windows `.exe`.
+
+![Windows](https://github.com/Abdou22223411775/Mirrorff/actions/workflows/windows.yml/badge.svg)
+![MacOS](https://github.com/Abdou22223411775/Mirrorff/actions/workflows/macos.yml/badge.svg)
+![Ubuntu](https://github.com/Abdou22223411775/Mirrorff/actions/workflows/ubuntu.yml/badge.svg)
 
 ![license](https://img.shields.io/badge/license-Apache2.0-blue.svg)
-![release](https://img.shields.io/github/v/release/barry-ran/QtScrcpy.svg)
-![star](https://img.shields.io/github/stars/barry-ran/QtScrcpy.svg)
+![release](https://img.shields.io/github/v/release/Abdou22223411775/Mirrorff.svg)
+![star](https://img.shields.io/github/stars/Abdou22223411775/Mirrorff.svg)
 
 [中文用户？点我查看中文介绍](README_zh.md)
 
-QtScrcpy supports displaying and controlling Android devices via USB or over network. It does NOT require root privileges.
+Mirrorff supports displaying and controlling Android devices via USB or over network. It does NOT require root privileges.
 
 It supports three major platforms: GNU/Linux, Windows and macOS.
 
@@ -90,7 +91,7 @@ You can control all your phones at the same time.
 
 ## Star History
 
-[![Star History Chart](https://star-history.dera.page/svg?repos=barry-ran/QtScrcpy&type=Date)](https://star-history.dera.page/#barry-ran/QtScrcpy&Date)
+[![Star History Chart](https://star-history.dera.page/svg?repos=Abdou22223411775/Mirrorff&type=Date)](https://star-history.dera.page/#Abdou22223411775/Mirrorff&Date)
 
 ## Thanks
 
@@ -138,7 +139,7 @@ Make sure you have enabled [ADB debugging][enable-adb] on your device(s).
 ## Download
 
 [gitee-download]: https://gitee.com/Barryda/QtScrcpy/releases
-[github-download]: https://github.com/barry-ran/QtScrcpy/releases
+[github-download]: https://github.com/Abdou22223411775/Mirrorff/releases
 
 ### Windows
 On Windows, for simplicity, prebuilt archives with all the dependencies (including ADB) are available at Releases:
@@ -161,7 +162,7 @@ For users in other distros, you can use the prebuilt archives from Releases:
 
 - [`QtScrcpy`][github-download]
 
-or you can get it at [GitHub Actions](https://github.com/barry-ran/QtScrcpy/actions/workflows/ubuntu.yml), in branch `dev` and download the latest artifact.
+or you can get it at [GitHub Actions](https://github.com/Abdou22223411775/Mirrorff/actions/workflows/ubuntu.yml), in branch `dev` and download the latest artifact.
 
 or you can [build it yourself](#Build) (not recommended, get it in Actions if you can)
 
@@ -281,18 +282,18 @@ There are several reasons listed below according to importance (high to low).
 ## Build
 All the dependencies are provided and it is easy to compile.
 
-### QtScrcpy
+### Mirrorff
 #### Non-Arch Linux Users
 1. Set up the Qt development environment with the official Qt installer or third-party tools such as [aqt](https://github.com/miurahr/aqtinstall) on the target platform.
    Qt version bigger than 5.12 is required. (use MSVC 2019 on Windows)
-2. Clone the project with `git clone --recurse-submodules git@github.com:barry-ran/QtScrcpy.git`
+2. Clone the project with `git clone --recurse-submodules git@github.com:Abdou22223411775/Mirrorff.git`
 3. For Windows, open CMakeLists.txt with QtCreator and compile Release
 4. For Linux, directly run `./ci/linux/build_for_linux.sh "Release"`
 Note: compiled artifacts are located at `output/x64/Release`
 
 #### Arch Linux Users
 1. Install packages: `base-devel cmake qt5-base qt5-multimedia qt5-x11extras` (`qtcreator` is recommended)
-2. Clone the project with `git clone --recurse-submodules git@github.com:barry-ran/QtScrcpy.git`
+2. Clone the project with `git clone --recurse-submodules git@github.com:Abdou22223411775/Mirrorff.git`
 3. Run `./ci/linux/build_for_linux.sh "Release"`
 
 ### Scrcpy-Server
@@ -329,7 +330,7 @@ An ordinary programmer, working mainly in C++ for desktop client development, gr
 ### Code Contributors
 
 This project exists thanks to all the people who contribute. [[Contribute](CONTRIBUTING.md)].
-<a href="https://github.com/barry-ran/QtScrcpy/graphs/contributors"><img src="https://opencollective.com/QtScrcpy/contributors.svg?width=890&button=false" /></a>
+<a href="https://github.com/Abdou22223411775/Mirrorff/graphs/contributors"><img src="https://opencollective.com/QtScrcpy/contributors.svg?width=890&button=false" /></a>
 
 ### Financial Contributors
 

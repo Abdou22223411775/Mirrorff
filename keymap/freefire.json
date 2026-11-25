@@ -1,0 +1,430 @@
+{
+  "switchKey": "Key_F1",
+  "mouseMoveMap": {
+    "type": "KMT_MOUSE_MOVE",
+    "smallEyes": {
+      "enabled": true,
+      "type": "KMT_CLICK",
+      "switchMap": false,
+      "key": "Key_Alt",
+      "pos": {
+        "x": 0.5,
+        "y": 0.4
+      }
+    },
+    "speedRatioX": 3,
+    "speedRatioY": 2,
+    "startPos": {
+      "x": 0.6,
+      "y": 0.352
+    }
+  },
+  "keyMapNodes": [
+    {
+      "centerPos": {
+        "x": 0.174,
+        "y": 0.754
+      },
+      "comment": "move",
+      "downKey": "Key_S",
+      "downOffset": 0.11,
+      "leftKey": "Key_Q",
+      "leftOffset": 0.06,
+      "rightKey": "Key_D",
+      "rightOffset": 0.06,
+      "switchMap": false,
+      "type": "KMT_STEER_WHEEL",
+      "upKey": "Key_Z",
+      "upOffset": 0.11
+    },
+    {
+      "comment": "fire",
+      "key": "LeftButton",
+      "pos": {
+        "x": 0.823,
+        "y": 0.694
+      },
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "scope",
+      "key": "RightButton",
+      "pos": {
+        "x": 0.929,
+        "y": 0.529
+      },
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "jump",
+      "key": "Key_Space",
+      "pos": {
+        "x": 0.929,
+        "y": 0.701
+      },
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "crouch",
+      "key": "Key_C",
+      "pos": {
+        "x": 0.93,
+        "y": 0.901
+      },
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "prone",
+      "key": "Key_W",
+      "pos": {
+        "x": 0.861,
+        "y": 0.901
+      },
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "sprint",
+      "key": "Key_Shift",
+      "pos": {
+        "x": 0.16,
+        "y": 0.462
+      },
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "reload (only shows when mag empty)",
+      "key": "Key_R",
+      "pos": {
+        "x": 0.9174,
+        "y": 0.0964
+      },
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "weapon 1",
+      "key": "Key_Ampersand",
+      "pos": {
+        "x": 0.833,
+        "y": 0.21
+      },
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "weapon 2",
+      "key": "Key_Eacute",
+      "pos": {
+        "x": 0.885,
+        "y": 0.211
+      },
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "weapon 3 / melee",
+      "key": "Key_QuoteDbl",
+      "pos": {
+        "x": 0.937,
+        "y": 0.211
+      },
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "binoculars",
+      "key": "Key_A",
+      "pos": {
+        "x": 0.728,
+        "y": 0.899
+      },
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "heal",
+      "key": "Key_Apostrophe",
+      "pos": {
+        "x": 0.283,
+        "y": 0.902
+      },
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "skill",
+      "key": "Key_E",
+      "pos": {
+        "x": 0.258,
+        "y": 0.182
+      },
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "grenade",
+      "key": "Key_ParenLeft",
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK_MULTI",
+      "clickNodes": [
+        {
+          "delay": 0,
+          "pos": {
+            "x": 0.642,
+            "y": 0.897
+          }
+        },
+        {
+          "delay": 60,
+          "pos": {
+            "x": 0.228,
+            "y": 0.452
+          }
+        }
+      ]
+    },
+    {
+      "comment": "interact / revive",
+      "key": "Key_F",
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK_MULTI",
+      "clickNodes": [
+        {
+          "delay": 0,
+          "pos": {
+            "x": 0.663,
+            "y": 0.454
+          }
+        },
+        {
+          "delay": 60,
+          "pos": {
+            "x": 0.595,
+            "y": 0.617
+          }
+        }
+      ]
+    },
+    {
+      "comment": "map",
+      "key": "Key_M",
+      "pos": {
+        "x": 0.1,
+        "y": 0.135
+      },
+      "size": 60,
+      "switchMap": true,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "backpack",
+      "key": "Key_Tab",
+      "pos": {
+        "x": 0.088,
+        "y": 0.903
+      },
+      "size": 60,
+      "switchMap": true,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "melee",
+      "key": "Key_V",
+      "pos": {
+        "x": 0.077,
+        "y": 0.488
+      },
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "item 1",
+      "key": "Key_T",
+      "pos": {
+        "x": 0.777,
+        "y": 0.357
+      },
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "item 2",
+      "key": "Key_Y",
+      "pos": {
+        "x": 0.826,
+        "y": 0.357
+      },
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "item 3",
+      "key": "Key_U",
+      "pos": {
+        "x": 0.877,
+        "y": 0.357
+      },
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "item 4",
+      "key": "Key_B",
+      "pos": {
+        "x": 0.929,
+        "y": 0.357
+      },
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "flag",
+      "key": "Key_H",
+      "pos": {
+        "x": 0.707,
+        "y": 0.256
+      },
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "chat",
+      "key": "Key_J",
+      "pos": {
+        "x": 0.684,
+        "y": 0.357
+      },
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "pin",
+      "key": "Key_K",
+      "pos": {
+        "x": 0.722,
+        "y": 0.352
+      },
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "flag arrow",
+      "key": "Key_I",
+      "pos": {
+        "x": 0.311,
+        "y": 0.565
+      },
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "team chat",
+      "key": "Key_O",
+      "pos": {
+        "x": 0.224,
+        "y": 0.256
+      },
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "smart message",
+      "key": "Key_P",
+      "pos": {
+        "x": 0.685,
+        "y": 0.127
+      },
+      "size": 60,
+      "switchMap": false,
+      "type": "KMT_CLICK"
+    },
+    {
+      "comment": "spare 1",
+      "type": "KMT_CLICK",
+      "key": "Key_G",
+      "pos": {
+        "x": 0.36,
+        "y": 0.78
+      },
+      "size": 60,
+      "switchMap": false
+    },
+    {
+      "comment": "spare 2",
+      "type": "KMT_CLICK",
+      "key": "Key_X",
+      "pos": {
+        "x": 0.42,
+        "y": 0.78
+      },
+      "size": 60,
+      "switchMap": false
+    },
+    {
+      "comment": "spare 3",
+      "type": "KMT_CLICK",
+      "key": "Key_CapsLock",
+      "pos": {
+        "x": 0.48,
+        "y": 0.78
+      },
+      "size": 60,
+      "switchMap": false
+    },
+    {
+      "comment": "spare 4",
+      "type": "KMT_CLICK",
+      "key": "Key_Control",
+      "pos": {
+        "x": 0.54,
+        "y": 0.78
+      },
+      "size": 60,
+      "switchMap": false
+    },
+    {
+      "comment": "spare 5",
+      "type": "KMT_CLICK",
+      "key": "Key_N",
+      "pos": {
+        "x": 0.6,
+        "y": 0.78
+      },
+      "size": 60,
+      "switchMap": false
+    }
+  ],
+  "width": 2048,
+  "height": 921
+}
