@@ -34,8 +34,8 @@ KeymapOverlay::KeymapOverlay(QWidget *parent)
     , m_dragNode(-1)
     , m_dragTap(-1)
     , m_dragDirection(-1)
-    , m_hasPreview(false)
     , m_undoPushed(false)
+    , m_hasPreview(false)
 {
     setFocusPolicy(Qt::StrongFocus);
     setVisible(false); // play mode: hidden until edit mode is switched on

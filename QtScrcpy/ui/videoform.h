@@ -31,6 +31,7 @@ public:
     void updateShowSize(const QSize &newSize);
     void updateRender(int width, int height, uint8_t* dataY, uint8_t* dataU, uint8_t* dataV, int linesizeY, int linesizeU, int linesizeV);
     void setSerial(const QString& serial);
+    QString getSerial() const { return m_serial; }
     QRect getGrabCursorRect();
     const QSize &frameSize();
     void resizeSquare();
